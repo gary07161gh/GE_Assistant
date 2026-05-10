@@ -25,6 +25,7 @@ final class GeAssistantOverlay extends Overlay
 	private static final Color INFO_FILL = new Color(28, 55, 68, 205);
 	private static final Color FAVORABLE = new Color(70, 150, 85);
 	private static final Color FAVORABLE_FILL = new Color(31, 75, 45, 205);
+	private static final Color DEBUG_SLOT = new Color(255, 218, 68, 160);
 	private static final Color PANEL = new Color(20, 18, 14, 230);
 	private static final Color TEXT = Color.WHITE;
 
@@ -51,6 +52,7 @@ final class GeAssistantOverlay extends Overlay
 		if (config.showDebugStatus())
 		{
 			renderDebugStatus(graphics);
+			renderDebugSlotBounds(graphics);
 		}
 
 		if (insights.isEmpty())
@@ -170,6 +172,7 @@ final class GeAssistantOverlay extends Overlay
 		lines.add("GE Assistant debug");
 		lines.add("offers: " + plugin.getOfferCount() + " warnings: " + plugin.getWarnings().size());
 		lines.add("prices: " + plugin.getPriceCount() + " refresh: " + (plugin.isRefreshInFlight() ? "running" : "idle"));
+		lines.add(slotLocator.describeGrandExchangeRoot(client));
 		if (plugin.getPriceError() != null)
 		{
 			lines.add("price error: " + plugin.getPriceError());
@@ -189,6 +192,24 @@ final class GeAssistantOverlay extends Overlay
 		for (int i = 0; i < lines.size(); i++)
 		{
 			graphics.drawString(lines.get(i), x + 7, y + 7 + metrics.getAscent() + (i * metrics.getHeight()));
+		}
+	}
+
+	private void renderDebugSlotBounds(Graphics2D graphics)
+	{
+		graphics.setStroke(new BasicStroke(1f));
+		graphics.setColor(DEBUG_SLOT);
+		for (int slot = 0; slot < 8; slot++)
+		{
+			Optional<Rectangle> bounds = slotLocator.findOfferSlotBounds(client, slot);
+			if (!bounds.isPresent())
+			{
+				continue;
+			}
+
+			Rectangle rectangle = bounds.get();
+			graphics.drawRoundRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height, 6, 6);
+			graphics.drawString(Integer.toString(slot), rectangle.x + 4, rectangle.y + 12);
 		}
 	}
 

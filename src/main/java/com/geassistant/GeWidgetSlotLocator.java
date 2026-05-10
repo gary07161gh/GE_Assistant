@@ -8,10 +8,19 @@ import java.util.Optional;
 import net.runelite.api.Client;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
+import net.runelite.api.widgets.WidgetInfo;
 
 final class GeWidgetSlotLocator
 {
 	private static final int MAX_GE_SLOTS = 8;
+	private static final int GRID_COLUMNS = 4;
+	private static final int GRID_ROWS = 2;
+	private static final int GRID_LEFT_INSET = 7;
+	private static final int GRID_TOP_INSET = 59;
+	private static final int GRID_RIGHT_INSET = 7;
+	private static final int GRID_BOTTOM_INSET = 9;
+	private static final int GRID_COLUMN_GAP = 4;
+	private static final int GRID_ROW_GAP = 4;
 
 	@SuppressWarnings("deprecation")
 	Optional<Rectangle> findOfferSlotBounds(Client client, int slot)
@@ -21,41 +30,192 @@ final class GeWidgetSlotLocator
 			return Optional.empty();
 		}
 
-		Widget root = findGrandExchangeRoot(client);
+		RootCandidate root = findGrandExchangeRoot(client);
 		if (root == null)
 		{
 			return Optional.empty();
 		}
 
 		List<Rectangle> slots = new ArrayList<>();
-		collectCandidateSlots(root, root.getBounds(), slots);
+		Rectangle rootBounds = root.widget.getBounds();
+		collectCandidateSlots(root.widget, rootBounds, slots);
 		slots.sort(Comparator.comparingInt((Rectangle r) -> r.y).thenComparingInt(r -> r.x));
 
-		return slot < slots.size() ? Optional.of(slots.get(slot)) : Optional.empty();
+		if (slots.size() >= MAX_GE_SLOTS)
+		{
+			return Optional.of(slots.get(slot));
+		}
+
+		return syntheticOfferSlotBounds(rootBounds, slot);
 	}
 
 	@SuppressWarnings("deprecation")
 	Optional<Rectangle> findGrandExchangeBounds(Client client)
 	{
-		Widget root = findGrandExchangeRoot(client);
-		return root == null ? Optional.empty() : Optional.ofNullable(root.getBounds());
+		RootCandidate root = findGrandExchangeRoot(client);
+		return root == null ? Optional.empty() : Optional.ofNullable(root.widget.getBounds());
 	}
 
 	@SuppressWarnings("deprecation")
-	private Widget findGrandExchangeRoot(Client client)
+	String describeGrandExchangeRoot(Client client)
 	{
+		RootCandidate root = findGrandExchangeRoot(client);
+		if (root == null)
+		{
+			return "GE widget: missing";
+		}
+
+		Rectangle bounds = root.widget.getBounds();
+		List<Rectangle> slots = new ArrayList<>();
+		collectCandidateSlots(root.widget, bounds, slots);
+		return "GE widget: " + root.source + " " + format(bounds) + " candidates:" + slots.size();
+	}
+
+	@SuppressWarnings("deprecation")
+	private RootCandidate findGrandExchangeRoot(Client client)
+	{
+		RootCandidate widgetInfoRoot = widgetInfoRoot(client, WidgetInfo.GRAND_EXCHANGE_WINDOW_CONTAINER, "window");
+		if (widgetInfoRoot != null)
+		{
+			return widgetInfoRoot;
+		}
+
+		widgetInfoRoot = widgetInfoRoot(client, WidgetInfo.GRAND_EXCHANGE_OFFER_CONTAINER, "offer-container");
+		if (widgetInfoRoot != null)
+		{
+			return widgetInfoRoot;
+		}
+
+		widgetInfoRoot = widgetInfoRoot(client, WidgetInfo.GRAND_EXCHANGE_OFFER_TEXT, "offer-text");
+		if (widgetInfoRoot != null)
+		{
+			return widgetInfoRoot;
+		}
+
 		Widget[] roots = client.getWidgetRoots();
 		if (roots == null || InterfaceID.GRAND_EXCHANGE < 0 || InterfaceID.GRAND_EXCHANGE >= roots.length)
+		{
+			return scanForGrandExchangeTitle(roots);
+		}
+
+		Widget root = roots[InterfaceID.GRAND_EXCHANGE];
+		if (isUsable(root))
+		{
+			return new RootCandidate(root, "interface-root");
+		}
+
+		return scanForGrandExchangeTitle(roots);
+	}
+
+	private RootCandidate widgetInfoRoot(Client client, WidgetInfo widgetInfo, String source)
+	{
+		Widget widget = client.getWidget(widgetInfo);
+		if (!isUsable(widget))
 		{
 			return null;
 		}
 
-		Widget root = roots[InterfaceID.GRAND_EXCHANGE];
-		if (root == null || root.isHidden())
+		Widget panel = bestPanelAncestor(widget);
+		return panel == null ? null : new RootCandidate(panel, source);
+	}
+
+	private RootCandidate scanForGrandExchangeTitle(Widget[] roots)
+	{
+		if (roots == null)
 		{
 			return null;
 		}
-		return root;
+
+		for (Widget root : roots)
+		{
+			Widget title = findWidgetWithText(root, "Grand Exchange");
+			if (title != null)
+			{
+				Widget panel = bestPanelAncestor(title);
+				if (panel != null)
+				{
+					return new RootCandidate(panel, "title-scan");
+				}
+			}
+		}
+
+		return null;
+	}
+
+	private Widget findWidgetWithText(Widget widget, String text)
+	{
+		if (!isUsable(widget))
+		{
+			return null;
+		}
+
+		if (text.equals(widget.getText()))
+		{
+			return widget;
+		}
+
+		Widget found = findWidgetWithText(widget.getStaticChildren(), text);
+		if (found != null)
+		{
+			return found;
+		}
+		found = findWidgetWithText(widget.getDynamicChildren(), text);
+		if (found != null)
+		{
+			return found;
+		}
+		return findWidgetWithText(widget.getNestedChildren(), text);
+	}
+
+	private Widget findWidgetWithText(Widget[] children, String text)
+	{
+		if (children == null)
+		{
+			return null;
+		}
+
+		for (Widget child : children)
+		{
+			Widget found = findWidgetWithText(child, text);
+			if (found != null)
+			{
+				return found;
+			}
+		}
+		return null;
+	}
+
+	private Widget bestPanelAncestor(Widget widget)
+	{
+		Widget best = null;
+		for (Widget current = widget; current != null; current = current.getParent())
+		{
+			if (!isUsable(current))
+			{
+				continue;
+			}
+
+			Rectangle bounds = current.getBounds();
+			if (isLikelyGePanel(bounds))
+			{
+				best = current;
+			}
+		}
+		return best;
+	}
+
+	private boolean isUsable(Widget widget)
+	{
+		return widget != null && !widget.isHidden() && widget.getBounds() != null;
+	}
+
+	private boolean isLikelyGePanel(Rectangle bounds)
+	{
+		return bounds != null
+			&& bounds.width >= 430
+			&& bounds.width <= 560
+			&& bounds.height >= 250
+			&& bounds.height <= 340;
 	}
 
 	private void collectCandidateSlots(Widget widget, Rectangle rootBounds, List<Rectangle> slots)
@@ -102,5 +262,49 @@ final class GeWidgetSlotLocator
 			&& bounds.height <= 150
 			&& bounds.width * bounds.height < rootBounds.width * rootBounds.height / 3;
 	}
-}
 
+	Optional<Rectangle> syntheticOfferSlotBounds(Rectangle rootBounds, int slot)
+	{
+		if (rootBounds == null || slot < 0 || slot >= MAX_GE_SLOTS)
+		{
+			return Optional.empty();
+		}
+
+		int usableWidth = rootBounds.width - GRID_LEFT_INSET - GRID_RIGHT_INSET - ((GRID_COLUMNS - 1) * GRID_COLUMN_GAP);
+		int usableHeight = rootBounds.height - GRID_TOP_INSET - GRID_BOTTOM_INSET - ((GRID_ROWS - 1) * GRID_ROW_GAP);
+		if (usableWidth <= 0 || usableHeight <= 0)
+		{
+			return Optional.empty();
+		}
+
+		int slotWidth = usableWidth / GRID_COLUMNS;
+		int slotHeight = usableHeight / GRID_ROWS;
+		int column = slot % GRID_COLUMNS;
+		int row = slot / GRID_COLUMNS;
+		return Optional.of(new Rectangle(
+			rootBounds.x + GRID_LEFT_INSET + (column * (slotWidth + GRID_COLUMN_GAP)),
+			rootBounds.y + GRID_TOP_INSET + (row * (slotHeight + GRID_ROW_GAP)),
+			slotWidth,
+			slotHeight
+		));
+	}
+
+	private String format(Rectangle bounds)
+	{
+		return bounds == null
+			? "no-bounds"
+			: bounds.x + "," + bounds.y + " " + bounds.width + "x" + bounds.height;
+	}
+
+	private static final class RootCandidate
+	{
+		private final Widget widget;
+		private final String source;
+
+		private RootCandidate(Widget widget, String source)
+		{
+			this.widget = widget;
+			this.source = source;
+		}
+	}
+}
