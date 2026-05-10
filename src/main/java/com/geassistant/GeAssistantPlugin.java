@@ -105,9 +105,10 @@ public class GeAssistantPlugin extends Plugin
 		GrandExchangeOffer[] currentOffers = client.getGrandExchangeOffers();
 		if (currentOffers == null)
 		{
-			boolean changed = !offers.isEmpty() || !warnings.isEmpty();
+			boolean changed = !offers.isEmpty() || !warnings.isEmpty() || !insights.isEmpty();
 			offers.clear();
 			warnings.clear();
+			insights.clear();
 			return changed;
 		}
 
@@ -185,6 +186,7 @@ public class GeAssistantPlugin extends Plugin
 		if (!config.enableWikiPrices())
 		{
 			warnings.clear();
+			insights.clear();
 			return;
 		}
 
