@@ -2,7 +2,6 @@ package com.geassistant;
 
 import java.awt.Rectangle;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
@@ -50,16 +49,7 @@ final class GeWidgetSlotLocator
 			return Optional.empty();
 		}
 
-		List<Rectangle> slots = new ArrayList<>();
 		Rectangle rootBounds = root.widget.getBounds();
-		collectCandidateSlots(root.widget, rootBounds, slots);
-		slots.sort(Comparator.comparingInt((Rectangle r) -> r.y).thenComparingInt(r -> r.x));
-
-		if (slots.size() >= MAX_GE_SLOTS)
-		{
-			return Optional.of(slots.get(slot));
-		}
-
 		return syntheticOfferSlotBounds(rootBounds, slot);
 	}
 

@@ -28,6 +28,21 @@ public class GeWidgetSlotLocatorTest
 	}
 
 	@Test
+	public void keepsBottomRowSyntheticSlotsSeparate()
+	{
+		Rectangle root = new Rectangle(18, 14, 477, 290);
+
+		Rectangle slotFive = locator.syntheticOfferSlotBounds(root, 5).get();
+		Rectangle slotSix = locator.syntheticOfferSlotBounds(root, 6).get();
+		Rectangle slotSeven = locator.syntheticOfferSlotBounds(root, 7).get();
+
+		assertFalse(slotFive.intersects(slotSix));
+		assertFalse(slotSix.intersects(slotSeven));
+		assertTrue(slotFive.contains(slotFive.x + slotFive.width / 2, slotFive.y + slotFive.height / 2));
+		assertFalse(slotSix.contains(slotFive.x + slotFive.width / 2, slotFive.y + slotFive.height / 2));
+	}
+
+	@Test
 	public void rejectsInvalidSyntheticSlots()
 	{
 		assertFalse(locator.syntheticOfferSlotBounds(new Rectangle(0, 0, 477, 290), -1).isPresent());
