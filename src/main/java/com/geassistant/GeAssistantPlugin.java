@@ -3,9 +3,11 @@ package com.geassistant;
 import com.google.inject.Provides;
 import java.time.Clock;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -258,6 +260,22 @@ public class GeAssistantPlugin extends Plugin
 	String getPriceError()
 	{
 		return priceCache.getLastError();
+	}
+
+	Optional<GeOfferInsight> getSetupInsight(SetupOfferSnapshot offer)
+	{
+		if (!config.enableWikiPrices() || offer == null)
+		{
+			return Optional.empty();
+		}
+		return insightBuilder.build(
+			offer,
+			priceCache.get(offer.getItemId()).orElse(null),
+			Math.max(0, config.warningThresholdPercent()),
+			Math.max(0, config.taxPercent()),
+			Math.max(0, config.taxCapGp()),
+			Instant.now()
+		);
 	}
 
 	@Provides

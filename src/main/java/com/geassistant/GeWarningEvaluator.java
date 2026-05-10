@@ -4,7 +4,7 @@ import java.util.Optional;
 
 final class GeWarningEvaluator
 {
-	Optional<GeWarning> evaluate(OfferSnapshot offer, PriceSnapshot price, double thresholdPercent, double taxPercent, int taxCapGp)
+	Optional<GeWarning> evaluate(GeOfferInput offer, PriceSnapshot price, double thresholdPercent, double taxPercent, int taxCapGp)
 	{
 		if (offer == null || price == null || offer.getPrice() <= 0)
 		{
@@ -64,4 +64,3 @@ final class GeWarningEvaluator
 		return price.getHigh() - tax - price.getLow();
 	}
 }
-

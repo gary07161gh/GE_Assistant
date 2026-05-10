@@ -51,6 +51,14 @@ public class GeWidgetSlotLocatorTest
 	}
 
 	@Test
+	public void anchorsBadgeToBottomRightOfSlot()
+	{
+		Rectangle badge = GeAssistantOverlay.badgeBounds(new Rectangle(100, 200, 112, 109), 38, 17);
+
+		assertEquals(new Rectangle(170, 288, 38, 17), badge);
+	}
+
+	@Test
 	public void detectsOverviewTitleWithoutMatchingSetupOfferTitle()
 	{
 		assertTrue(GeWidgetSlotLocator.isOverviewTitle("Grand Exchange"));

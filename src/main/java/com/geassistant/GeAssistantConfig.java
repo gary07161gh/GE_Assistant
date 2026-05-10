@@ -94,4 +94,15 @@ public interface GeAssistantConfig extends Config
 	{
 		return false;
 	}
+
+	@ConfigItem(
+		keyName = "showSetupPanel",
+		name = "Show setup panel",
+		description = "Show safe-price context while setting up a Grand Exchange offer.",
+		position = 8
+	)
+	default boolean showSetupPanel()
+	{
+		return true;
+	}
 }

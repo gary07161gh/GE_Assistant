@@ -2,7 +2,7 @@ package com.geassistant;
 
 import java.util.Objects;
 
-final class OfferSnapshot
+final class OfferSnapshot implements GeOfferInput
 {
 	private final int slot;
 	private final int itemId;
@@ -26,22 +26,22 @@ final class OfferSnapshot
 		return slot;
 	}
 
-	int getItemId()
+	public int getItemId()
 	{
 		return itemId;
 	}
 
-	OfferSide getSide()
+	public OfferSide getSide()
 	{
 		return side;
 	}
 
-	int getPrice()
+	public int getPrice()
 	{
 		return price;
 	}
 
-	int getTotalQuantity()
+	public int getTotalQuantity()
 	{
 		return totalQuantity;
 	}

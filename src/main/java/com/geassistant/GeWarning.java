@@ -4,14 +4,14 @@ import java.util.Locale;
 
 final class GeWarning
 {
-	private final OfferSnapshot offer;
+	private final GeOfferInput offer;
 	private final PriceSnapshot price;
 	private final int referencePrice;
 	private final double signedPercent;
 	private final int rawSpread;
 	private final int taxAdjustedMargin;
 
-	GeWarning(OfferSnapshot offer, PriceSnapshot price, int referencePrice, double signedPercent, int rawSpread, int taxAdjustedMargin)
+	GeWarning(GeOfferInput offer, PriceSnapshot price, int referencePrice, double signedPercent, int rawSpread, int taxAdjustedMargin)
 	{
 		this.offer = offer;
 		this.price = price;
@@ -21,7 +21,7 @@ final class GeWarning
 		this.taxAdjustedMargin = taxAdjustedMargin;
 	}
 
-	OfferSnapshot getOffer()
+	GeOfferInput getOffer()
 	{
 		return offer;
 	}
@@ -61,4 +61,3 @@ final class GeWarning
 		return String.format(Locale.US, "%+.1f%%", signedPercent);
 	}
 }
-

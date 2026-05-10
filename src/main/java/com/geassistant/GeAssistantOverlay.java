@@ -33,6 +33,7 @@ final class GeAssistantOverlay extends Overlay
 	private final GeAssistantPlugin plugin;
 	private final GeAssistantConfig config;
 	private final GeWidgetSlotLocator slotLocator;
+	private final GeSetupOfferSnapshotReader setupReader;
 
 	@Inject
 	GeAssistantOverlay(Client client, GeAssistantPlugin plugin, GeAssistantConfig config)
@@ -41,6 +42,7 @@ final class GeAssistantOverlay extends Overlay
 		this.plugin = plugin;
 		this.config = config;
 		this.slotLocator = new GeWidgetSlotLocator();
+		this.setupReader = new GeSetupOfferSnapshotReader();
 		setPosition(OverlayPosition.DYNAMIC);
 		setLayer(OverlayLayer.ABOVE_WIDGETS);
 	}
@@ -55,12 +57,13 @@ final class GeAssistantOverlay extends Overlay
 			renderDebugSlotBounds(graphics);
 		}
 
-		if (insights.isEmpty())
+		if (!slotLocator.isOfferOverviewOpen(client))
 		{
+			renderSetupPanel(graphics);
 			return null;
 		}
 
-		if (!slotLocator.isOfferOverviewOpen(client))
+		if (insights.isEmpty())
 		{
 			return null;
 		}
@@ -71,11 +74,12 @@ final class GeAssistantOverlay extends Overlay
 			return null;
 		}
 
-		insights.sort(Comparator.comparingInt(w -> w.getOffer().getSlot()));
+		insights.sort(Comparator.comparingInt(w -> ((OfferSnapshot) w.getOffer()).getSlot()));
 		boolean renderedSlot = false;
 		for (GeOfferInsight insight : insights)
 		{
-			Optional<Rectangle> bounds = slotLocator.findOfferSlotBounds(client, insight.getOffer().getSlot());
+			OfferSnapshot offer = (OfferSnapshot) insight.getOffer();
+			Optional<Rectangle> bounds = slotLocator.findOfferSlotBounds(client, offer.getSlot());
 			if (bounds.isPresent())
 			{
 				renderSlotInsight(graphics, bounds.get(), insight);
@@ -109,13 +113,12 @@ final class GeAssistantOverlay extends Overlay
 		FontMetrics metrics = graphics.getFontMetrics();
 		int width = metrics.stringWidth(text) + 10;
 		int height = metrics.getHeight() + 2;
-		int x = bounds.x + bounds.width - width - 4;
-		int y = bounds.y + 4;
+		Rectangle badge = badgeBounds(bounds, width, height);
 
 		graphics.setColor(fill);
-		graphics.fillRoundRect(x, y, width, height, 6, 6);
+		graphics.fillRoundRect(badge.x, badge.y, badge.width, badge.height, 6, 6);
 		graphics.setColor(TEXT);
-		graphics.drawString(text, x + 5, y + metrics.getAscent() + 1);
+		graphics.drawString(text, badge.x + 5, badge.y + metrics.getAscent() + 1);
 
 		if (config.showMarginTooltip() && mouseInside(bounds))
 		{
@@ -127,8 +130,8 @@ final class GeAssistantOverlay extends Overlay
 	{
 		List<String> lines = new ArrayList<>();
 		lines.add(insight.getOffer().getSide() + " offer: " + formatGp(insight.getOffer().getPrice()));
-		lines.add("Wiki high: " + formatNullableGp(insight.getPrice().getHigh()));
-		lines.add("Wiki low: " + formatNullableGp(insight.getPrice().getLow()));
+		lines.add("High: " + formatNullableGp(insight.getPrice().getHigh()) + " (" + insight.getHighAgeText() + ")");
+		lines.add("Low: " + formatNullableGp(insight.getPrice().getLow()) + " (" + insight.getLowAgeText() + ")");
 		lines.add("Spread: " + formatGp(insight.getRawSpread()));
 		lines.add("Tax margin: " + formatGp(insight.getTaxAdjustedMargin()));
 
@@ -167,6 +170,70 @@ final class GeAssistantOverlay extends Overlay
 		graphics.fillRoundRect(x, y, width, height, 8, 8);
 		graphics.setColor(TEXT);
 		graphics.drawString(text, x + 7, y + 5 + metrics.getAscent());
+	}
+
+	private void renderSetupPanel(Graphics2D graphics)
+	{
+		if (!config.showSetupPanel())
+		{
+			return;
+		}
+
+		Optional<SetupOfferSnapshot> setupOffer = setupReader.fromClient(client);
+		if (!setupOffer.isPresent())
+		{
+			return;
+		}
+
+		Optional<GeOfferInsight> insight = plugin.getSetupInsight(setupOffer.get());
+		if (!insight.isPresent())
+		{
+			return;
+		}
+
+		Optional<Rectangle> geBounds = slotLocator.findGrandExchangeBounds(client);
+		Rectangle bounds = geBounds.orElse(new Rectangle(8, 8, 500, 350));
+		renderSetupPanel(graphics, bounds, insight.get());
+	}
+
+	private void renderSetupPanel(Graphics2D graphics, Rectangle geBounds, GeOfferInsight insight)
+	{
+		List<String> lines = new ArrayList<>();
+		lines.add(insight.getStatusText());
+		if (insight.getPrice() != null)
+		{
+			lines.add("High: " + formatNullableGp(insight.getPrice().getHigh()) + " (" + insight.getHighAgeText() + ")");
+			lines.add("Low: " + formatNullableGp(insight.getPrice().getLow()) + " (" + insight.getLowAgeText() + ")");
+			lines.add("Tax margin: " + formatGp(insight.getTaxAdjustedMargin()));
+		}
+
+		FontMetrics metrics = graphics.getFontMetrics();
+		int width = lines.stream().mapToInt(metrics::stringWidth).max().orElse(160) + 14;
+		int height = lines.size() * metrics.getHeight() + 12;
+		int x = geBounds.x + geBounds.width - width - 8;
+		int y = geBounds.y + geBounds.height - height - 8;
+		Color accent = insight.getStatus() == GeInsightStatus.RISKY ? WARNING
+			: insight.getStatus() == GeInsightStatus.FAVORABLE ? FAVORABLE : INFO;
+
+		graphics.setColor(PANEL);
+		graphics.fillRoundRect(x, y, width, height, 8, 8);
+		graphics.setColor(accent);
+		graphics.drawRoundRect(x, y, width, height, 8, 8);
+		graphics.setColor(TEXT);
+		for (int i = 0; i < lines.size(); i++)
+		{
+			graphics.drawString(lines.get(i), x + 7, y + 7 + metrics.getAscent() + (i * metrics.getHeight()));
+		}
+	}
+
+	static Rectangle badgeBounds(Rectangle slotBounds, int width, int height)
+	{
+		return new Rectangle(
+			slotBounds.x + slotBounds.width - width - 4,
+			slotBounds.y + slotBounds.height - height - 4,
+			width,
+			height
+		);
 	}
 
 	private void renderDebugStatus(Graphics2D graphics)
