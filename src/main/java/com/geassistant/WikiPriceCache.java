@@ -1,0 +1,91 @@
+package com.geassistant;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import java.io.IOException;
+import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+final class WikiPriceCache
+{
+	private final PriceDataClient client;
+	private final Clock clock;
+	private volatile Map<Integer, PriceSnapshot> prices = Collections.emptyMap();
+	private volatile Instant lastRefresh;
+
+	WikiPriceCache(PriceDataClient client, Clock clock)
+	{
+		this.client = client;
+		this.clock = clock;
+	}
+
+	synchronized boolean refreshIfNeeded(Duration refreshInterval)
+	{
+		Instant now = clock.instant();
+		if (lastRefresh != null && now.isBefore(lastRefresh.plus(refreshInterval)))
+		{
+			return false;
+		}
+
+		try
+		{
+			Map<Integer, PriceSnapshot> parsed = parse(client.fetchLatestPrices());
+			prices = parsed;
+			lastRefresh = now;
+			return true;
+		}
+		catch (IOException | RuntimeException ex)
+		{
+			return false;
+		}
+	}
+
+	Optional<PriceSnapshot> get(int itemId)
+	{
+		return Optional.ofNullable(prices.get(itemId));
+	}
+
+	private Map<Integer, PriceSnapshot> parse(String body)
+	{
+		JsonObject root = JsonParser.parseString(body).getAsJsonObject();
+		JsonObject data = root.getAsJsonObject("data");
+		if (data == null)
+		{
+			throw new IllegalArgumentException("Missing data object");
+		}
+
+		Map<Integer, PriceSnapshot> parsed = new HashMap<>();
+		for (Map.Entry<String, JsonElement> entry : data.entrySet())
+		{
+			int itemId = Integer.parseInt(entry.getKey());
+			JsonObject item = entry.getValue().getAsJsonObject();
+			parsed.put(itemId, new PriceSnapshot(
+				itemId,
+				intOrNull(item, "high"),
+				instantOrNull(item, "highTime"),
+				intOrNull(item, "low"),
+				instantOrNull(item, "lowTime")
+			));
+		}
+		return parsed;
+	}
+
+	private Integer intOrNull(JsonObject object, String name)
+	{
+		JsonElement element = object.get(name);
+		return element == null || element.isJsonNull() ? null : element.getAsInt();
+	}
+
+	private Instant instantOrNull(JsonObject object, String name)
+	{
+		Integer epochSeconds = intOrNull(object, name);
+		return epochSeconds == null ? null : Instant.ofEpochSecond(epochSeconds);
+	}
+}
+
