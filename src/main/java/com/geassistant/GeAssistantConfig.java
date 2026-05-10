@@ -83,5 +83,15 @@ public interface GeAssistantConfig extends Config
 	{
 		return true;
 	}
-}
 
+	@ConfigItem(
+		keyName = "showDebugStatus",
+		name = "Show debug status",
+		description = "Show GE Assistant offer, warning, and price-cache counts on the GE screen.",
+		position = 7
+	)
+	default boolean showDebugStatus()
+	{
+		return false;
+	}
+}

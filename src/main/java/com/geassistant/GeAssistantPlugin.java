@@ -22,17 +22,22 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.overlay.OverlayManager;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @PluginDescriptor(
 	name = "GE Assistant"
 )
 public class GeAssistantPlugin extends Plugin
 {
+	private static final Logger log = LoggerFactory.getLogger(GeAssistantPlugin.class);
 	private final GeWarningEvaluator evaluator = new GeWarningEvaluator();
+	private final GeOfferInsightBuilder insightBuilder = new GeOfferInsightBuilder(evaluator);
 	private final WikiPriceCache priceCache = new WikiPriceCache(new WikiLatestPriceClient(), Clock.systemUTC());
 	private final GeOfferSnapshotReader snapshotReader = new GeOfferSnapshotReader();
 	private final Map<Integer, OfferSnapshot> offers = new ConcurrentHashMap<>();
 	private final Map<Integer, GeWarning> warnings = new ConcurrentHashMap<>();
+	private final Map<Integer, GeOfferInsight> insights = new ConcurrentHashMap<>();
 	private final AtomicBoolean refreshInFlight = new AtomicBoolean();
 	private ExecutorService executor;
 
@@ -55,6 +60,7 @@ public class GeAssistantPlugin extends Plugin
 		overlayManager.add(overlay);
 		syncCurrentOffers();
 		refreshPricesAsync();
+		log.info("GE Assistant started");
 	}
 
 	@Override
@@ -63,6 +69,7 @@ public class GeAssistantPlugin extends Plugin
 		overlayManager.remove(overlay);
 		offers.clear();
 		warnings.clear();
+		insights.clear();
 		if (executor != null)
 		{
 			executor.shutdownNow();
@@ -120,11 +127,21 @@ public class GeAssistantPlugin extends Plugin
 		{
 			boolean removed = offers.remove(slot) != null;
 			warnings.remove(slot);
+			insights.remove(slot);
+			if (removed)
+			{
+				log.debug("GE Assistant cleared offer slot {}", slot);
+			}
 			return removed;
 		}
 
 		OfferSnapshot previous = offers.put(slot, snapshot);
 		evaluateOffer(snapshot);
+		if (!snapshot.equals(previous))
+		{
+			log.info("GE Assistant saw {} slot {} item {} price {} qty {}",
+				snapshot.getSide(), snapshot.getSlot(), snapshot.getItemId(), snapshot.getPrice(), snapshot.getTotalQuantity());
+		}
 		return !snapshot.equals(previous);
 	}
 
@@ -143,7 +160,12 @@ public class GeAssistantPlugin extends Plugin
 					boolean refreshed = priceCache.refreshIfNeeded(Duration.ofSeconds(Math.max(5, config.priceRefreshSeconds())));
 					if (refreshed)
 					{
+						log.info("GE Assistant refreshed {} Wiki prices", priceCache.size());
 						recomputeWarnings();
+					}
+					else if (priceCache.getLastError() != null)
+					{
+						log.warn("GE Assistant Wiki price refresh failed: {}", priceCache.getLastError());
 					}
 				}
 				finally
@@ -177,11 +199,12 @@ public class GeAssistantPlugin extends Plugin
 		if (!config.enableWikiPrices())
 		{
 			warnings.clear();
+			insights.clear();
 			return;
 		}
 
 		priceCache.get(offer.getItemId())
-			.flatMap(price -> evaluator.evaluate(
+			.flatMap(price -> insightBuilder.build(
 				offer,
 				price,
 				Math.max(0, config.warningThresholdPercent()),
@@ -189,9 +212,50 @@ public class GeAssistantPlugin extends Plugin
 				Math.max(0, config.taxCapGp())
 			))
 			.ifPresentOrElse(
-				warning -> warnings.put(offer.getSlot(), warning),
-				() -> warnings.remove(offer.getSlot())
+				insight -> {
+					insights.put(offer.getSlot(), insight);
+					if (insight.hasWarning())
+					{
+						GeWarning warning = insight.getWarning();
+						warnings.put(offer.getSlot(), warning);
+						log.info("GE Assistant warning slot {} item {} offer {} ref {} pct {}",
+							offer.getSlot(), offer.getItemId(), offer.getPrice(), warning.getReferencePrice(), warning.getBadgeText());
+					}
+					else
+					{
+						warnings.remove(offer.getSlot());
+					}
+				},
+				() -> {
+					warnings.remove(offer.getSlot());
+					insights.remove(offer.getSlot());
+				}
 			);
+	}
+
+	Collection<GeOfferInsight> getInsights()
+	{
+		return Collections.unmodifiableCollection(insights.values());
+	}
+
+	int getOfferCount()
+	{
+		return offers.size();
+	}
+
+	int getPriceCount()
+	{
+		return priceCache.size();
+	}
+
+	boolean isRefreshInFlight()
+	{
+		return refreshInFlight.get();
+	}
+
+	String getPriceError()
+	{
+		return priceCache.getLastError();
 	}
 
 	@Provides

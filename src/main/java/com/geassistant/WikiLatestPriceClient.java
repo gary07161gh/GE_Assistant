@@ -2,6 +2,7 @@ package com.geassistant;
 
 import java.io.IOException;
 import java.net.URI;
+import java.time.Duration;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -15,7 +16,9 @@ final class WikiLatestPriceClient implements PriceDataClient
 
 	WikiLatestPriceClient()
 	{
-		this(HttpClient.newHttpClient());
+		this(HttpClient.newBuilder()
+			.connectTimeout(Duration.ofSeconds(5))
+			.build());
 	}
 
 	WikiLatestPriceClient(HttpClient httpClient)
@@ -27,6 +30,7 @@ final class WikiLatestPriceClient implements PriceDataClient
 	public String fetchLatestPrices() throws IOException
 	{
 		HttpRequest request = HttpRequest.newBuilder(LATEST_PRICES)
+			.timeout(Duration.ofSeconds(10))
 			.header("User-Agent", USER_AGENT)
 			.header("Accept", "application/json")
 			.GET()
@@ -48,4 +52,3 @@ final class WikiLatestPriceClient implements PriceDataClient
 		}
 	}
 }
-

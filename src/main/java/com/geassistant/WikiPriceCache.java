@@ -18,6 +18,7 @@ final class WikiPriceCache
 	private final Clock clock;
 	private volatile Map<Integer, PriceSnapshot> prices = Collections.emptyMap();
 	private volatile Instant lastRefresh;
+	private volatile String lastError;
 
 	WikiPriceCache(PriceDataClient client, Clock clock)
 	{
@@ -38,10 +39,12 @@ final class WikiPriceCache
 			Map<Integer, PriceSnapshot> parsed = parse(client.fetchLatestPrices());
 			prices = parsed;
 			lastRefresh = now;
+			lastError = null;
 			return true;
 		}
 		catch (IOException | RuntimeException ex)
 		{
+			lastError = ex.getClass().getSimpleName() + ": " + ex.getMessage();
 			return false;
 		}
 	}
@@ -49,6 +52,16 @@ final class WikiPriceCache
 	Optional<PriceSnapshot> get(int itemId)
 	{
 		return Optional.ofNullable(prices.get(itemId));
+	}
+
+	int size()
+	{
+		return prices.size();
+	}
+
+	String getLastError()
+	{
+		return lastError;
 	}
 
 	private Map<Integer, PriceSnapshot> parse(String body)
@@ -88,4 +101,3 @@ final class WikiPriceCache
 		return epochSeconds == null ? null : Instant.ofEpochSecond(epochSeconds);
 	}
 }
-
