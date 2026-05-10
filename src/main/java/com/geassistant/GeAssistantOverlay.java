@@ -60,6 +60,11 @@ final class GeAssistantOverlay extends Overlay
 			return null;
 		}
 
+		if (!slotLocator.isOfferOverviewOpen(client))
+		{
+			return null;
+		}
+
 		if (!config.showSlotBadges())
 		{
 			renderFallbackSummary(graphics, insights);
@@ -197,6 +202,11 @@ final class GeAssistantOverlay extends Overlay
 
 	private void renderDebugSlotBounds(Graphics2D graphics)
 	{
+		if (!slotLocator.isOfferOverviewOpen(client))
+		{
+			return;
+		}
+
 		graphics.setStroke(new BasicStroke(1f));
 		graphics.setColor(DEBUG_SLOT);
 		for (int slot = 0; slot < 8; slot++)

@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 import net.runelite.api.Client;
 import net.runelite.api.widgets.InterfaceID;
 import net.runelite.api.widgets.Widget;
@@ -21,6 +22,19 @@ final class GeWidgetSlotLocator
 	private static final int GRID_BOTTOM_INSET = 9;
 	private static final int GRID_COLUMN_GAP = 4;
 	private static final int GRID_ROW_GAP = 4;
+
+	@SuppressWarnings("deprecation")
+	boolean isOfferOverviewOpen(Client client)
+	{
+		RootCandidate root = findGrandExchangeRoot(client);
+		if (root == null)
+		{
+			return false;
+		}
+
+		return hasWidgetText(root.widget, GeWidgetSlotLocator::isOverviewInstruction)
+			|| hasWidgetText(root.widget, GeWidgetSlotLocator::isOverviewTitle);
+	}
 
 	@SuppressWarnings("deprecation")
 	Optional<Rectangle> findOfferSlotBounds(Client client, int slot)
@@ -68,7 +82,8 @@ final class GeWidgetSlotLocator
 		Rectangle bounds = root.widget.getBounds();
 		List<Rectangle> slots = new ArrayList<>();
 		collectCandidateSlots(root.widget, bounds, slots);
-		return "GE widget: " + root.source + " " + format(bounds) + " candidates:" + slots.size();
+		return "GE widget: " + root.source + " " + format(bounds) + " candidates:" + slots.size()
+			+ " overview:" + isOfferOverviewRoot(root.widget);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -183,6 +198,57 @@ final class GeWidgetSlotLocator
 			}
 		}
 		return null;
+	}
+
+	private boolean hasWidgetText(Widget widget, Predicate<String> matcher)
+	{
+		if (!isUsable(widget))
+		{
+			return false;
+		}
+
+		String widgetText = widget.getText();
+		if (widgetText != null && matcher.test(widgetText))
+		{
+			return true;
+		}
+
+		return hasWidgetText(widget.getStaticChildren(), matcher)
+			|| hasWidgetText(widget.getDynamicChildren(), matcher)
+			|| hasWidgetText(widget.getNestedChildren(), matcher);
+	}
+
+	private boolean hasWidgetText(Widget[] children, Predicate<String> matcher)
+	{
+		if (children == null)
+		{
+			return false;
+		}
+
+		for (Widget child : children)
+		{
+			if (hasWidgetText(child, matcher))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean isOfferOverviewRoot(Widget root)
+	{
+		return hasWidgetText(root, GeWidgetSlotLocator::isOverviewInstruction)
+			|| hasWidgetText(root, GeWidgetSlotLocator::isOverviewTitle);
+	}
+
+	static boolean isOverviewTitle(String text)
+	{
+		return "Grand Exchange".equals(text);
+	}
+
+	static boolean isOverviewInstruction(String text)
+	{
+		return text != null && text.contains("Select an offer slot");
 	}
 
 	private Widget bestPanelAncestor(Widget widget)

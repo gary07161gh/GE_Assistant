@@ -34,4 +34,19 @@ public class GeWidgetSlotLocatorTest
 		assertFalse(locator.syntheticOfferSlotBounds(new Rectangle(0, 0, 477, 290), 8).isPresent());
 		assertFalse(locator.syntheticOfferSlotBounds(null, 0).isPresent());
 	}
+
+	@Test
+	public void detectsOverviewTitleWithoutMatchingSetupOfferTitle()
+	{
+		assertTrue(GeWidgetSlotLocator.isOverviewTitle("Grand Exchange"));
+		assertFalse(GeWidgetSlotLocator.isOverviewTitle("Grand Exchange: Set up offer"));
+	}
+
+	@Test
+	public void detectsOverviewInstruction()
+	{
+		assertTrue(GeWidgetSlotLocator.isOverviewInstruction("Select an offer slot to set up or view an offer."));
+		assertFalse(GeWidgetSlotLocator.isOverviewInstruction("Buy offer"));
+		assertFalse(GeWidgetSlotLocator.isOverviewInstruction(null));
+	}
 }
