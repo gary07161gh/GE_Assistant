@@ -9,6 +9,7 @@ import java.awt.Rectangle;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 import javax.inject.Inject;
 import net.runelite.api.Client;
@@ -134,6 +135,13 @@ final class GeAssistantOverlay extends Overlay
 		lines.add("Low: " + formatNullableGp(insight.getPrice().getLow()) + " (" + insight.getLowAgeText() + ")");
 		lines.add("Spread: " + formatGp(insight.getRawSpread()));
 		lines.add("Tax margin: " + formatGp(insight.getTaxAdjustedMargin()));
+		if (config.showOpportunityScore())
+		{
+			lines.add("Opportunity: " + insight.getOpportunityLabel() + " " + insight.getOpportunityScore());
+			lines.add("ROI: " + formatPercent(insight.getOpportunityRoiPercent()) + " Net: " + formatGp(insight.getOpportunityNetMargin()));
+			lines.add("Volume: 5m " + formatNumber(insight.getFiveMinuteVolume()) + " / 1h " + formatNumber(insight.getHourlyVolume()));
+			lines.add("Trend: " + insight.getOpportunityTrendText());
+		}
 
 		FontMetrics metrics = graphics.getFontMetrics();
 		int width = lines.stream().mapToInt(metrics::stringWidth).max().orElse(120) + 14;
@@ -205,6 +213,12 @@ final class GeAssistantOverlay extends Overlay
 			lines.add("High: " + formatNullableGp(insight.getPrice().getHigh()) + " (" + insight.getHighAgeText() + ")");
 			lines.add("Low: " + formatNullableGp(insight.getPrice().getLow()) + " (" + insight.getLowAgeText() + ")");
 			lines.add("Tax margin: " + formatGp(insight.getTaxAdjustedMargin()));
+			if (config.showOpportunityScore())
+			{
+				lines.add("Opportunity: " + insight.getOpportunityLabel() + " " + insight.getOpportunityScore());
+				lines.add("Volume: 5m " + formatNumber(insight.getFiveMinuteVolume())
+					+ " / 1h " + formatNumber(insight.getHourlyVolume()) + " - " + insight.getOpportunityTrendText());
+			}
 		}
 
 		FontMetrics metrics = graphics.getFontMetrics();
@@ -298,11 +312,21 @@ final class GeAssistantOverlay extends Overlay
 
 	private String formatGp(int value)
 	{
-		return String.format("%,d gp", value);
+		return String.format(Locale.US, "%,d gp", value);
 	}
 
 	private String formatNullableGp(Integer value)
 	{
 		return value == null ? "n/a" : formatGp(value);
+	}
+
+	private String formatNumber(int value)
+	{
+		return String.format(Locale.US, "%,d", value);
+	}
+
+	private String formatPercent(double value)
+	{
+		return String.format(Locale.US, "%.1f%%", value);
 	}
 }

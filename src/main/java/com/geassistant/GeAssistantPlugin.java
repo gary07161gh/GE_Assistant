@@ -211,9 +211,12 @@ public class GeAssistantPlugin extends Plugin
 			.flatMap(price -> insightBuilder.build(
 				offer,
 				price,
+				priceCache.getFiveMinute(offer.getItemId()).orElse(null),
+				priceCache.getHourly(offer.getItemId()).orElse(null),
 				Math.max(0, config.warningThresholdPercent()),
 				Math.max(0, config.taxPercent()),
-				Math.max(0, config.taxCapGp())
+				Math.max(0, config.taxCapGp()),
+				Instant.now()
 			))
 			.ifPresentOrElse(
 				insight -> {
@@ -271,6 +274,8 @@ public class GeAssistantPlugin extends Plugin
 		return insightBuilder.build(
 			offer,
 			priceCache.get(offer.getItemId()).orElse(null),
+			priceCache.getFiveMinute(offer.getItemId()).orElse(null),
+			priceCache.getHourly(offer.getItemId()).orElse(null),
 			Math.max(0, config.warningThresholdPercent()),
 			Math.max(0, config.taxPercent()),
 			Math.max(0, config.taxCapGp()),

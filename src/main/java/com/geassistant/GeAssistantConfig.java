@@ -105,4 +105,15 @@ public interface GeAssistantConfig extends Config
 	{
 		return true;
 	}
+
+	@ConfigItem(
+		keyName = "showOpportunityScore",
+		name = "Show opportunity score",
+		description = "Show balanced opportunity score, ROI, volume, and trend context in GE Assistant panels.",
+		position = 9
+	)
+	default boolean showOpportunityScore()
+	{
+		return true;
+	}
 }

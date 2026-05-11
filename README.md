@@ -25,11 +25,17 @@ While setting up a new offer in the Grand Exchange interface, GE Assistant shows
 - Current high/low Wiki prices and their ages
 - Tax-adjusted margin for the item
 - Status indicator for the prospective offer
+- Balanced opportunity score using margin, ROI, volume, price freshness, and short-term trend
 
 ### GE Tax Support
 - Configurable tax percentage (default 2% to match OSRS mechanics)
 - Configurable tax cap (default 5,000,000 gp)
 - Tax is applied to sell-side margin calculations
+
+### Opportunity Scoring
+- Fetches OSRS Wiki 5-minute and 1-hour market data alongside latest prices
+- Scores opportunities from 0-100 with Strong, Fair, Weak, and Avoid labels
+- Shows score, ROI, net margin, volume, and trend context in the setup panel and hover tooltip
 
 ## Configuration
 
@@ -46,6 +52,7 @@ Open RuneLite's configuration panel and navigate to **GE Assistant** to adjust:
 | Enable Wiki prices | Enabled | Fetch cached latest high/low prices from the OSRS Wiki real-time prices API |
 | Show debug status | Disabled | Show offer, warning, and price-cache counts on the GE screen for troubleshooting |
 | Show setup panel | Enabled | Show safe-price context while setting up a Grand Exchange offer |
+| Show opportunity score | Enabled | Show balanced opportunity score, ROI, volume, and trend context |
 
 ## Installation
 
@@ -70,7 +77,7 @@ The built JAR will be in `build/libs/`. Add it to RuneLite via the "Open RuneLit
 ## How It Works
 
 1. **Offer Detection**: On each game tick, the plugin reads all 8 GE offer slots from the client state
-2. **Price Fetching**: Prices are fetched from the [OSRS Wiki Real-time Prices API](https://prices.runescape.wiki/api/v1/osrs/latest) with configurable refresh intervals
+2. **Price Fetching**: Latest prices and 5-minute/1-hour market data are fetched from the [OSRS Wiki Real-time Prices API](https://prices.runescape.wiki/api/v1/osrs) with configurable refresh intervals
 3. **Warning Evaluation**: Each offer is compared against the latest Wiki reference price:
    - **Buy offers** compared against the Wiki **low** price (above threshold = risky)
    - **Sell offers** compared against the Wiki **high** price (below threshold = risky)
