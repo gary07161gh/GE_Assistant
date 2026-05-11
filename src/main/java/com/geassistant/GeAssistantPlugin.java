@@ -21,10 +21,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import net.runelite.api.Client;
 import net.runelite.api.GrandExchangeOffer;
+import net.runelite.api.ItemComposition;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.GrandExchangeOfferChanged;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -62,6 +64,9 @@ public class GeAssistantPlugin extends Plugin
 	private ClientToolbar clientToolbar;
 
 	@Inject
+	private ItemManager itemManager;
+
+	@Inject
 	private GeAssistantOverlay overlay;
 
 	@Inject
@@ -71,7 +76,7 @@ public class GeAssistantPlugin extends Plugin
 	protected void startUp()
 	{
 		executor = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
-		flippingPanel = new GeFlippingPanel();
+		flippingPanel = new GeFlippingPanel(this::itemName);
 		navigationButton = NavigationButton.builder()
 			.tooltip("GE Assistant")
 			.icon(createSidebarIcon())
@@ -355,6 +360,19 @@ public class GeAssistantPlugin extends Plugin
 			graphics.dispose();
 		}
 		return image;
+	}
+
+	private String itemName(int itemId)
+	{
+		try
+		{
+			ItemComposition item = itemManager.getItemComposition(itemId);
+			return item == null ? "Item " + itemId : item.getName();
+		}
+		catch (RuntimeException ex)
+		{
+			return "Item " + itemId;
+		}
 	}
 
 	@Provides

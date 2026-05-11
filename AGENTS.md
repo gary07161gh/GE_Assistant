@@ -17,6 +17,11 @@
 - `.claude/commands/verify.md`: verification gate before claiming completion.
 - `.claude/commands/code-review.md`: request a review pass before merge.
 - `.claude/commands/parallel-agents.md`: split independent workstreams when tasks do not overlap.
+- `.claude/commands/using-superpowers.md`: activate the repo's Superpowers skill-selection workflow before starting a task.
+- `.claude/commands/tmux.md`: run interactive CLI tools through detached tmux sessions.
+- `.claude/commands/mcp-cli.md`: discover and invoke MCP servers on demand through the `mcp` CLI.
+- `.claude/commands/finish-branch.md`: complete a development branch with verify/merge/PR/cleanup flow.
+- `.claude/commands/find-duplicates.md`: detect semantic duplicate functions and generate a consolidation report.
 - `.clinerules/ge-assistant-conventions.md`: project-specific Java, RuneLite, logging, and testing conventions.
 
 ## TODO

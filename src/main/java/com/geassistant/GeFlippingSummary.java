@@ -9,15 +9,17 @@ final class GeFlippingSummary
 	private final int offerCount;
 	private final int riskyOfferCount;
 	private final int projectedProfit;
+	private final int projectedLoss;
 	private final GeOfferInsight bestOpportunity;
 	private final GeOfferInsight setupInsight;
 
-	private GeFlippingSummary(int offerCount, int riskyOfferCount, int projectedProfit, GeOfferInsight bestOpportunity,
+	private GeFlippingSummary(int offerCount, int riskyOfferCount, int projectedProfit, int projectedLoss, GeOfferInsight bestOpportunity,
 		GeOfferInsight setupInsight)
 	{
 		this.offerCount = offerCount;
 		this.riskyOfferCount = riskyOfferCount;
 		this.projectedProfit = projectedProfit;
+		this.projectedLoss = projectedLoss;
 		this.bestOpportunity = bestOpportunity;
 		this.setupInsight = setupInsight;
 	}
@@ -27,6 +29,7 @@ final class GeFlippingSummary
 		int offerCount = 0;
 		int riskyOfferCount = 0;
 		int projectedProfit = 0;
+		int projectedLoss = 0;
 		GeOfferInsight bestOpportunity = null;
 
 		if (insights != null)
@@ -44,16 +47,25 @@ final class GeFlippingSummary
 					riskyOfferCount++;
 				}
 
-				int profit = Math.max(0, insight.getOpportunityNetMargin()) * Math.max(0, insight.getOffer().getTotalQuantity());
-				projectedProfit += profit;
-				if (bestOpportunity == null || opportunityComparator().compare(insight, bestOpportunity) > 0)
+				int projected = insight.getOpportunityNetMargin() * Math.max(0, insight.getOffer().getTotalQuantity());
+				if (projected >= 0)
+				{
+					projectedProfit += projected;
+				}
+				else
+				{
+					projectedLoss += Math.abs(projected);
+				}
+
+				if (insight.getOpportunityNetMargin() > 0
+					&& (bestOpportunity == null || opportunityComparator().compare(insight, bestOpportunity) > 0))
 				{
 					bestOpportunity = insight;
 				}
 			}
 		}
 
-		return new GeFlippingSummary(offerCount, riskyOfferCount, projectedProfit, bestOpportunity, setupInsight.orElse(null));
+		return new GeFlippingSummary(offerCount, riskyOfferCount, projectedProfit, projectedLoss, bestOpportunity, setupInsight.orElse(null));
 	}
 
 	int getOfferCount()
@@ -69,6 +81,16 @@ final class GeFlippingSummary
 	int getProjectedProfit()
 	{
 		return projectedProfit;
+	}
+
+	int getProjectedLoss()
+	{
+		return projectedLoss;
+	}
+
+	int getNetProjectedProfit()
+	{
+		return projectedProfit - projectedLoss;
 	}
 
 	Optional<GeOfferInsight> getBestOpportunity()

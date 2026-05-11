@@ -9,6 +9,7 @@ import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.util.Locale;
+import java.util.function.IntFunction;
 import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
@@ -28,12 +29,19 @@ final class GeFlippingPanel extends PluginPanel
 	private static final Color FAVORABLE = new Color(70, 150, 85);
 
 	private final JPanel content = new JPanel();
+	private final IntFunction<String> itemNameResolver;
 	private volatile String lastRenderKey = "";
 
 	GeFlippingPanel()
 	{
+		this(itemId -> "Item " + itemId);
+	}
+
+	GeFlippingPanel(IntFunction<String> itemNameResolver)
+	{
 		setLayout(new BorderLayout());
 		setBackground(BACKGROUND);
+		this.itemNameResolver = itemNameResolver;
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 		content.setBackground(BACKGROUND);
 		content.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -83,7 +91,8 @@ final class GeFlippingPanel extends PluginPanel
 		}
 
 		GeOfferInsight insight = summary.getSetupInsight().get();
-		addRow(panel, "Status", insight.getStatusText());
+		addRow(panel, "Item", itemLabel(insight));
+		addRow(panel, "Action", setupAction(insight));
 		addRow(panel, "Buy", formatGp(insight.getSuggestedBuyPrice()));
 		addRow(panel, "Sell", formatGp(insight.getSuggestedSellPrice()));
 		addRow(panel, "Profit", formatGp(insight.getSuggestedProfit()) + " after " + formatGp(insight.getSuggestedTax()) + " tax");
@@ -99,7 +108,9 @@ final class GeFlippingPanel extends PluginPanel
 		JPanel panel = card("Active Offers");
 		addRow(panel, "Offers", Integer.toString(summary.getOfferCount()));
 		addRow(panel, "Risky", Integer.toString(summary.getRiskyOfferCount()));
-		addRow(panel, "Projected", formatGp(summary.getProjectedProfit()));
+		addRow(panel, "Profit", formatGp(summary.getProjectedProfit()));
+		addRow(panel, "Risk", formatGp(summary.getProjectedLoss()));
+		addRow(panel, "Net", formatGp(summary.getNetProjectedProfit()));
 		return panel;
 	}
 
@@ -108,12 +119,12 @@ final class GeFlippingPanel extends PluginPanel
 		JPanel panel = card("Best Active");
 		if (!summary.getBestOpportunity().isPresent())
 		{
-			addRow(panel, "Current", "No active offers");
+			addRow(panel, "Current", summary.getOfferCount() == 0 ? "No active offers" : "No profitable offers");
 			return panel;
 		}
 
 		GeOfferInsight insight = summary.getBestOpportunity().get();
-		addRow(panel, "Item", Integer.toString(insight.getOffer().getItemId()));
+		addRow(panel, "Item", itemLabel(insight));
 		addRow(panel, "Side", insight.getOffer().getSide().toString());
 		addRow(panel, "Price", formatGp(insight.getOffer().getPrice()));
 		addRow(panel, "Profit", formatGp(insight.getOpportunityNetMargin()) + " each");
@@ -150,9 +161,13 @@ final class GeFlippingPanel extends PluginPanel
 		labelComponent.setForeground(MUTED);
 		JLabel valueComponent = new JLabel(value);
 		valueComponent.setForeground(value.startsWith("-") ? WARNING : TEXT);
-		if ("Profit".equals(label) || "Projected".equals(label))
+		if ("Profit".equals(label) || "Net".equals(label))
 		{
 			valueComponent.setForeground(value.startsWith("-") ? WARNING : FAVORABLE);
+		}
+		if ("Risk".equals(label) && !"0 gp".equals(value))
+		{
+			valueComponent.setForeground(WARNING);
 		}
 
 		panel.add(labelComponent, constraints(0, row));
@@ -191,6 +206,7 @@ final class GeFlippingPanel extends PluginPanel
 		return summary.getOfferCount()
 			+ "|" + summary.getRiskyOfferCount()
 			+ "|" + summary.getProjectedProfit()
+			+ "|" + summary.getProjectedLoss()
 			+ "|" + insightKey(summary.getSetupInsight().orElse(null))
 			+ "|" + insightKey(summary.getBestOpportunity().orElse(null));
 	}
@@ -210,5 +226,24 @@ final class GeFlippingPanel extends PluginPanel
 			+ ":" + insight.getSuggestedBuyPrice()
 			+ ":" + insight.getSuggestedSellPrice()
 			+ ":" + insight.getSuggestedProfit();
+	}
+
+	String itemLabel(GeOfferInsight insight)
+	{
+		if (insight == null)
+		{
+			return "Unknown item";
+		}
+		String name = itemNameResolver.apply(insight.getOffer().getItemId());
+		return name == null || name.trim().isEmpty() ? "Item " + insight.getOffer().getItemId() : name;
+	}
+
+	String setupAction(GeOfferInsight insight)
+	{
+		if (insight == null || insight.getSuggestedBuyPrice() <= 0 || insight.getSuggestedSellPrice() <= 0)
+		{
+			return "Waiting for prices";
+		}
+		return "Buy " + formatGp(insight.getSuggestedBuyPrice()) + " / sell " + formatGp(insight.getSuggestedSellPrice());
 	}
 }

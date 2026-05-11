@@ -41,7 +41,8 @@ While setting up a new offer in the Grand Exchange interface, GE Assistant shows
 ### Sidebar Flipping Info
 - Adds a GE Assistant sidebar panel to RuneLite's toolbar
 - Shows setup-offer flipping context while entering an offer
-- Summarizes active GE offers, risky offer count, projected positive profit, and best active opportunity
+- Resolves item names for active and setup offers
+- Summarizes active GE offers, risky offer count, projected profit, projected loss, net projection, and best profitable opportunity
 
 ## Configuration
 

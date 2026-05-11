@@ -25,8 +25,23 @@ public class GeFlippingSummaryTest
 		assertEquals(2, summary.getOfferCount());
 		assertEquals(1, summary.getRiskyOfferCount());
 		assertEquals(380, summary.getProjectedProfit());
+		assertEquals(110, summary.getProjectedLoss());
+		assertEquals(270, summary.getNetProjectedProfit());
 		assertSame(strongBuy, summary.getBestOpportunity().get());
 		assertSame(setup, summary.getSetupInsight().get());
+	}
+
+	@Test
+	public void doesNotPromoteLosingOfferAsBestOpportunity()
+	{
+		GeOfferInsight riskyBuy = insight(OfferSide.BUY, 140, 5, price(120, 100));
+
+		GeFlippingSummary summary = GeFlippingSummary.from(Arrays.asList(riskyBuy), Optional.empty());
+
+		assertEquals(0, summary.getProjectedProfit());
+		assertEquals(110, summary.getProjectedLoss());
+		assertEquals(-110, summary.getNetProjectedProfit());
+		assertEquals(false, summary.getBestOpportunity().isPresent());
 	}
 
 	private GeOfferInsight insight(OfferSide side, int offerPrice, int quantity, PriceSnapshot price)
