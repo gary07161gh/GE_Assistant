@@ -1,0 +1,55 @@
+{
+  "version": 1,
+  "skills": {
+    "superpowers-using-superpowers": {
+      "version": "1.0.1",
+      "installedAt": "2026-05-11T00:49:56.350Z",
+      "platform": "claude-code"
+    },
+    "superpowers-systematic-debugging": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:50:06.981Z",
+      "platform": "claude-code"
+    },
+    "superpowers-verification-before-completion": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:50:16.637Z",
+      "platform": "claude-code"
+    },
+    "superpowers-dispatching-parallel-agents": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:50:26.222Z",
+      "platform": "claude-code"
+    },
+    "superpowers-test-driven-development": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:50:36.194Z",
+      "platform": "claude-code"
+    },
+    "superpowers-finishing-a-development-branch": {
+      "version": "1.0.1",
+      "installedAt": "2026-05-11T00:50:46.819Z",
+      "platform": "claude-code"
+    },
+    "superpowers-requesting-code-review": {
+      "version": "1.0.1",
+      "installedAt": "2026-05-11T00:50:57.204Z",
+      "platform": "claude-code"
+    },
+    "superpowers-lab-mcp-cli": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:51:06.912Z",
+      "platform": "claude-code"
+    },
+    "superpowers-lab-using-tmux-for-interactive-commands": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:51:17.916Z",
+      "platform": "claude-code"
+    },
+    "superpowers-lab-finding-duplicate-functions": {
+      "version": "1.0.0",
+      "installedAt": "2026-05-11T00:51:28.031Z",
+      "platform": "claude-code"
+    }
+  }
+}
