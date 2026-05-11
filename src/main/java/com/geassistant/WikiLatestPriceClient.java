@@ -10,6 +10,8 @@ import java.net.http.HttpResponse;
 final class WikiLatestPriceClient implements PriceDataClient
 {
 	private static final URI LATEST_PRICES = URI.create("https://prices.runescape.wiki/api/v1/osrs/latest");
+	private static final URI FIVE_MINUTE_PRICES = URI.create("https://prices.runescape.wiki/api/v1/osrs/5m");
+	private static final URI HOURLY_PRICES = URI.create("https://prices.runescape.wiki/api/v1/osrs/1h");
 	private static final String USER_AGENT = "ge-assistant-runelite-plugin - https://github.com/Gary0/ge-assistant";
 
 	private final HttpClient httpClient;
@@ -29,7 +31,24 @@ final class WikiLatestPriceClient implements PriceDataClient
 	@Override
 	public String fetchLatestPrices() throws IOException
 	{
-		HttpRequest request = HttpRequest.newBuilder(LATEST_PRICES)
+		return fetch(LATEST_PRICES);
+	}
+
+	@Override
+	public String fetchFiveMinutePrices() throws IOException
+	{
+		return fetch(FIVE_MINUTE_PRICES);
+	}
+
+	@Override
+	public String fetchHourlyPrices() throws IOException
+	{
+		return fetch(HOURLY_PRICES);
+	}
+
+	private String fetch(URI uri) throws IOException
+	{
+		HttpRequest request = HttpRequest.newBuilder(uri)
 			.timeout(Duration.ofSeconds(10))
 			.header("User-Agent", USER_AGENT)
 			.header("Accept", "application/json")

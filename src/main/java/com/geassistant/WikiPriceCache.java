@@ -17,6 +17,8 @@ final class WikiPriceCache
 	private final PriceDataClient client;
 	private final Clock clock;
 	private volatile Map<Integer, PriceSnapshot> prices = Collections.emptyMap();
+	private volatile Map<Integer, MarketSnapshot> fiveMinutePrices = Collections.emptyMap();
+	private volatile Map<Integer, MarketSnapshot> hourlyPrices = Collections.emptyMap();
 	private volatile Instant lastRefresh;
 	private volatile String lastError;
 
@@ -36,10 +38,11 @@ final class WikiPriceCache
 
 		try
 		{
-			Map<Integer, PriceSnapshot> parsed = parse(client.fetchLatestPrices());
+			Map<Integer, PriceSnapshot> parsed = parseLatest(client.fetchLatestPrices());
 			prices = parsed;
 			lastRefresh = now;
 			lastError = null;
+			refreshMarketData();
 			return true;
 		}
 		catch (IOException | RuntimeException ex)
@@ -54,6 +57,16 @@ final class WikiPriceCache
 		return Optional.ofNullable(prices.get(itemId));
 	}
 
+	Optional<MarketSnapshot> getFiveMinute(int itemId)
+	{
+		return Optional.ofNullable(fiveMinutePrices.get(itemId));
+	}
+
+	Optional<MarketSnapshot> getHourly(int itemId)
+	{
+		return Optional.ofNullable(hourlyPrices.get(itemId));
+	}
+
 	int size()
 	{
 		return prices.size();
@@ -64,7 +77,31 @@ final class WikiPriceCache
 		return lastError;
 	}
 
-	private Map<Integer, PriceSnapshot> parse(String body)
+	private void refreshMarketData()
+	{
+		try
+		{
+			fiveMinutePrices = parseMarket(client.fetchFiveMinutePrices());
+		}
+		catch (IOException | RuntimeException ex)
+		{
+			fiveMinutePrices = Collections.emptyMap();
+			lastError = "5m market data: " + ex.getClass().getSimpleName() + ": " + ex.getMessage();
+		}
+
+		try
+		{
+			hourlyPrices = parseMarket(client.fetchHourlyPrices());
+		}
+		catch (IOException | RuntimeException ex)
+		{
+			hourlyPrices = Collections.emptyMap();
+			String message = "1h market data: " + ex.getClass().getSimpleName() + ": " + ex.getMessage();
+			lastError = lastError == null ? message : lastError + "; " + message;
+		}
+	}
+
+	private Map<Integer, PriceSnapshot> parseLatest(String body)
 	{
 		JsonObject root = JsonParser.parseString(body).getAsJsonObject();
 		JsonObject data = root.getAsJsonObject("data");
@@ -84,6 +121,31 @@ final class WikiPriceCache
 				instantOrNull(item, "highTime"),
 				intOrNull(item, "low"),
 				instantOrNull(item, "lowTime")
+			));
+		}
+		return parsed;
+	}
+
+	private Map<Integer, MarketSnapshot> parseMarket(String body)
+	{
+		JsonObject root = JsonParser.parseString(body).getAsJsonObject();
+		JsonObject data = root.getAsJsonObject("data");
+		if (data == null)
+		{
+			throw new IllegalArgumentException("Missing data object");
+		}
+
+		Map<Integer, MarketSnapshot> parsed = new HashMap<>();
+		for (Map.Entry<String, JsonElement> entry : data.entrySet())
+		{
+			int itemId = Integer.parseInt(entry.getKey());
+			JsonObject item = entry.getValue().getAsJsonObject();
+			parsed.put(itemId, new MarketSnapshot(
+				itemId,
+				intOrNull(item, "avgHighPrice"),
+				intOrNull(item, "highPriceVolume"),
+				intOrNull(item, "avgLowPrice"),
+				intOrNull(item, "lowPriceVolume")
 			));
 		}
 		return parsed;

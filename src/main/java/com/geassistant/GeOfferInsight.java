@@ -14,6 +14,13 @@ final class GeOfferInsight
 	private final String statusText;
 	private final String highAgeText;
 	private final String lowAgeText;
+	private final String opportunityLabel;
+	private final int opportunityScore;
+	private final int opportunityNetMargin;
+	private final double opportunityRoiPercent;
+	private final int fiveMinuteVolume;
+	private final int hourlyVolume;
+	private final String opportunityTrendText;
 
 	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin)
 	{
@@ -22,6 +29,15 @@ final class GeOfferInsight
 
 	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin,
 		GeInsightStatus status, String statusText, String highAgeText, String lowAgeText)
+	{
+		this(offer, price, warning, signedPercent, rawSpread, taxAdjustedMargin, status, statusText, highAgeText, lowAgeText,
+			"Waiting for market data", 0, 0, 0.0, 0, 0, "No trend data");
+	}
+
+	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin,
+		GeInsightStatus status, String statusText, String highAgeText, String lowAgeText, String opportunityLabel,
+		int opportunityScore, int opportunityNetMargin, double opportunityRoiPercent, int fiveMinuteVolume, int hourlyVolume,
+		String opportunityTrendText)
 	{
 		this.offer = offer;
 		this.price = price;
@@ -33,6 +49,13 @@ final class GeOfferInsight
 		this.statusText = statusText;
 		this.highAgeText = highAgeText;
 		this.lowAgeText = lowAgeText;
+		this.opportunityLabel = opportunityLabel;
+		this.opportunityScore = opportunityScore;
+		this.opportunityNetMargin = opportunityNetMargin;
+		this.opportunityRoiPercent = opportunityRoiPercent;
+		this.fiveMinuteVolume = fiveMinuteVolume;
+		this.hourlyVolume = hourlyVolume;
+		this.opportunityTrendText = opportunityTrendText;
 	}
 
 	GeOfferInput getOffer()
@@ -88,6 +111,41 @@ final class GeOfferInsight
 	String getLowAgeText()
 	{
 		return lowAgeText;
+	}
+
+	String getOpportunityLabel()
+	{
+		return opportunityLabel;
+	}
+
+	int getOpportunityScore()
+	{
+		return opportunityScore;
+	}
+
+	int getOpportunityNetMargin()
+	{
+		return opportunityNetMargin;
+	}
+
+	double getOpportunityRoiPercent()
+	{
+		return opportunityRoiPercent;
+	}
+
+	int getFiveMinuteVolume()
+	{
+		return fiveMinuteVolume;
+	}
+
+	int getHourlyVolume()
+	{
+		return hourlyVolume;
+	}
+
+	String getOpportunityTrendText()
+	{
+		return opportunityTrendText;
 	}
 
 	String getBadgeText()

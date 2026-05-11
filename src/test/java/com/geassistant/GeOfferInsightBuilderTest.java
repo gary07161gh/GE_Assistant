@@ -72,10 +72,84 @@ public class GeOfferInsightBuilderTest
 		assertFalse(insight.hasWarning());
 	}
 
+	@Test
+	public void scoresStrongBuyOpportunityWithOfferAdjustedMargin()
+	{
+		GeOfferInsight insight = build(
+			OfferSide.BUY,
+			100,
+			price(140, 100),
+			market(140, 1_500, 100, 1_500),
+			market(138, 15_000, 101, 15_000)
+		).get();
+
+		assertEquals("Strong", insight.getOpportunityLabel());
+		assertTrue(insight.getOpportunityScore() >= 75);
+		assertEquals(38, insight.getOpportunityNetMargin());
+		assertEquals(38.0, insight.getOpportunityRoiPercent(), 0.001);
+		assertEquals(3_000, insight.getFiveMinuteVolume());
+		assertEquals(30_000, insight.getHourlyVolume());
+	}
+
+	@Test
+	public void scoresAvoidWhenOfferAdjustedMarginIsNegative()
+	{
+		GeOfferInsight insight = build(
+			OfferSide.BUY,
+			140,
+			price(120, 100),
+			market(120, 900, 100, 900),
+			market(121, 9_000, 101, 9_000)
+		).get();
+
+		assertEquals("Avoid", insight.getOpportunityLabel());
+		assertEquals(0, insight.getOpportunityScore());
+		assertEquals(-22, insight.getOpportunityNetMargin());
+	}
+
+	@Test
+	public void scoresSellOpportunityAgainstLatestLowPrice()
+	{
+		GeOfferInsight insight = build(
+			OfferSide.SELL,
+			112,
+			price(140, 100),
+			market(140, 1_500, 100, 1_500),
+			market(138, 15_000, 101, 15_000)
+		).get();
+
+		assertEquals("Fair", insight.getOpportunityLabel());
+		assertTrue(insight.getOpportunityScore() >= 50);
+		assertEquals(10, insight.getOpportunityNetMargin());
+		assertEquals(10.0, insight.getOpportunityRoiPercent(), 0.001);
+	}
+
+	@Test
+	public void marksOpportunityUnavailableWhenMarketPricesAreIncomplete()
+	{
+		GeOfferInsight insight = build(
+			OfferSide.BUY,
+			100,
+			new PriceSnapshot(536, null, null, 100, now),
+			null,
+			null
+		).get();
+
+		assertEquals("Waiting for market data", insight.getOpportunityLabel());
+		assertEquals(0, insight.getOpportunityScore());
+		assertEquals(0, insight.getOpportunityNetMargin());
+	}
+
 	private Optional<GeOfferInsight> build(OfferSide side, int offerPrice, PriceSnapshot price)
 	{
 		SetupOfferSnapshot offer = new SetupOfferSnapshot(536, side, offerPrice, 1);
 		return builder.build(offer, price, 2.0, 2.0, 5_000_000, now);
+	}
+
+	private Optional<GeOfferInsight> build(OfferSide side, int offerPrice, PriceSnapshot price, MarketSnapshot fiveMinute, MarketSnapshot hourly)
+	{
+		SetupOfferSnapshot offer = new SetupOfferSnapshot(536, side, offerPrice, 1);
+		return builder.build(offer, price, fiveMinute, hourly, 2.0, 2.0, 5_000_000, now);
 	}
 
 	private PriceSnapshot price(Integer high, Integer low)
@@ -87,5 +161,10 @@ public class GeOfferInsightBuilderTest
 			low,
 			low == null ? null : now.minusSeconds(360)
 		);
+	}
+
+	private MarketSnapshot market(Integer avgHighPrice, Integer highPriceVolume, Integer avgLowPrice, Integer lowPriceVolume)
+	{
+		return new MarketSnapshot(536, avgHighPrice, highPriceVolume, avgLowPrice, lowPriceVolume);
 	}
 }
