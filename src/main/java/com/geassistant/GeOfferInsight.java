@@ -21,6 +21,11 @@ final class GeOfferInsight
 	private final int fiveMinuteVolume;
 	private final int hourlyVolume;
 	private final String opportunityTrendText;
+	private final int suggestedBuyPrice;
+	private final int suggestedSellPrice;
+	private final int suggestedTax;
+	private final int suggestedProfit;
+	private final double suggestedRoiPercent;
 
 	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin)
 	{
@@ -31,13 +36,24 @@ final class GeOfferInsight
 		GeInsightStatus status, String statusText, String highAgeText, String lowAgeText)
 	{
 		this(offer, price, warning, signedPercent, rawSpread, taxAdjustedMargin, status, statusText, highAgeText, lowAgeText,
-			"Waiting for market data", 0, 0, 0.0, 0, 0, "No trend data");
+			"Waiting for market data", 0, 0, 0.0, 0, 0, "No trend data", 0, 0, 0, 0, 0.0);
 	}
 
 	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin,
 		GeInsightStatus status, String statusText, String highAgeText, String lowAgeText, String opportunityLabel,
 		int opportunityScore, int opportunityNetMargin, double opportunityRoiPercent, int fiveMinuteVolume, int hourlyVolume,
 		String opportunityTrendText)
+	{
+		this(offer, price, warning, signedPercent, rawSpread, taxAdjustedMargin, status, statusText, highAgeText, lowAgeText,
+			opportunityLabel, opportunityScore, opportunityNetMargin, opportunityRoiPercent, fiveMinuteVolume, hourlyVolume,
+			opportunityTrendText, 0, 0, 0, 0, 0.0);
+	}
+
+	GeOfferInsight(GeOfferInput offer, PriceSnapshot price, GeWarning warning, double signedPercent, int rawSpread, int taxAdjustedMargin,
+		GeInsightStatus status, String statusText, String highAgeText, String lowAgeText, String opportunityLabel,
+		int opportunityScore, int opportunityNetMargin, double opportunityRoiPercent, int fiveMinuteVolume, int hourlyVolume,
+		String opportunityTrendText, int suggestedBuyPrice, int suggestedSellPrice, int suggestedTax, int suggestedProfit,
+		double suggestedRoiPercent)
 	{
 		this.offer = offer;
 		this.price = price;
@@ -56,6 +72,11 @@ final class GeOfferInsight
 		this.fiveMinuteVolume = fiveMinuteVolume;
 		this.hourlyVolume = hourlyVolume;
 		this.opportunityTrendText = opportunityTrendText;
+		this.suggestedBuyPrice = suggestedBuyPrice;
+		this.suggestedSellPrice = suggestedSellPrice;
+		this.suggestedTax = suggestedTax;
+		this.suggestedProfit = suggestedProfit;
+		this.suggestedRoiPercent = suggestedRoiPercent;
 	}
 
 	GeOfferInput getOffer()
@@ -146,6 +167,31 @@ final class GeOfferInsight
 	String getOpportunityTrendText()
 	{
 		return opportunityTrendText;
+	}
+
+	int getSuggestedBuyPrice()
+	{
+		return suggestedBuyPrice;
+	}
+
+	int getSuggestedSellPrice()
+	{
+		return suggestedSellPrice;
+	}
+
+	int getSuggestedTax()
+	{
+		return suggestedTax;
+	}
+
+	int getSuggestedProfit()
+	{
+		return suggestedProfit;
+	}
+
+	double getSuggestedRoiPercent()
+	{
+		return suggestedRoiPercent;
 	}
 
 	String getBadgeText()

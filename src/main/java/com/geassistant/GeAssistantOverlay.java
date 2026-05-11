@@ -63,6 +63,7 @@ final class GeAssistantOverlay extends Overlay
 			renderSetupPanel(graphics);
 			return null;
 		}
+		plugin.updateSidebarSetupInsight(Optional.empty());
 
 		if (insights.isEmpty())
 		{
@@ -184,21 +185,25 @@ final class GeAssistantOverlay extends Overlay
 	{
 		if (!config.showSetupPanel())
 		{
+			plugin.updateSidebarSetupInsight(Optional.empty());
 			return;
 		}
 
 		Optional<SetupOfferSnapshot> setupOffer = setupReader.fromClient(client);
 		if (!setupOffer.isPresent())
 		{
+			plugin.updateSidebarSetupInsight(Optional.empty());
 			return;
 		}
 
 		Optional<GeOfferInsight> insight = plugin.getSetupInsight(setupOffer.get());
 		if (!insight.isPresent())
 		{
+			plugin.updateSidebarSetupInsight(Optional.empty());
 			return;
 		}
 
+		plugin.updateSidebarSetupInsight(insight);
 		Optional<Rectangle> geBounds = slotLocator.findGrandExchangeBounds(client);
 		Rectangle bounds = geBounds.orElse(new Rectangle(8, 8, 500, 350));
 		renderSetupPanel(graphics, bounds, insight.get());
@@ -216,6 +221,10 @@ final class GeAssistantOverlay extends Overlay
 			if (config.showOpportunityScore())
 			{
 				lines.add("Opportunity: " + insight.getOpportunityLabel() + " " + insight.getOpportunityScore());
+				lines.add("Buy: " + formatGp(insight.getSuggestedBuyPrice())
+					+ " Sell: " + formatGp(insight.getSuggestedSellPrice()));
+				lines.add("Flip profit: " + formatGp(insight.getSuggestedProfit())
+					+ " ROI: " + formatPercent(insight.getSuggestedRoiPercent()));
 				lines.add("Volume: 5m " + formatNumber(insight.getFiveMinuteVolume())
 					+ " / 1h " + formatNumber(insight.getHourlyVolume()) + " - " + insight.getOpportunityTrendText());
 			}

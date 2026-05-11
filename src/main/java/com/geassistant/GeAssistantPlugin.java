@@ -1,6 +1,10 @@
 package com.geassistant;
 
 import com.google.inject.Provides;
+import java.awt.Color;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.image.BufferedImage;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -23,6 +27,8 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
+import net.runelite.client.ui.ClientToolbar;
+import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,13 +47,19 @@ public class GeAssistantPlugin extends Plugin
 	private final Map<Integer, GeWarning> warnings = new ConcurrentHashMap<>();
 	private final Map<Integer, GeOfferInsight> insights = new ConcurrentHashMap<>();
 	private final AtomicBoolean refreshInFlight = new AtomicBoolean();
+	private volatile GeOfferInsight setupSidebarInsight;
 	private ExecutorService executor;
+	private GeFlippingPanel flippingPanel;
+	private NavigationButton navigationButton;
 
 	@Inject
 	private Client client;
 
 	@Inject
 	private OverlayManager overlayManager;
+
+	@Inject
+	private ClientToolbar clientToolbar;
 
 	@Inject
 	private GeAssistantOverlay overlay;
@@ -59,9 +71,18 @@ public class GeAssistantPlugin extends Plugin
 	protected void startUp()
 	{
 		executor = Executors.newSingleThreadExecutor(new DaemonThreadFactory());
+		flippingPanel = new GeFlippingPanel();
+		navigationButton = NavigationButton.builder()
+			.tooltip("GE Assistant")
+			.icon(createSidebarIcon())
+			.priority(6)
+			.panel(flippingPanel)
+			.build();
+		clientToolbar.addNavigation(navigationButton);
 		overlayManager.add(overlay);
 		syncCurrentOffers();
 		refreshPricesAsync();
+		updateSidebar();
 		log.info("GE Assistant started");
 	}
 
@@ -72,6 +93,13 @@ public class GeAssistantPlugin extends Plugin
 		offers.clear();
 		warnings.clear();
 		insights.clear();
+		setupSidebarInsight = null;
+		if (navigationButton != null)
+		{
+			clientToolbar.removeNavigation(navigationButton);
+			navigationButton = null;
+		}
+		flippingPanel = null;
 		if (executor != null)
 		{
 			executor.shutdownNow();
@@ -111,6 +139,7 @@ public class GeAssistantPlugin extends Plugin
 			offers.clear();
 			warnings.clear();
 			insights.clear();
+			updateSidebar();
 			return changed;
 		}
 
@@ -135,6 +164,7 @@ public class GeAssistantPlugin extends Plugin
 			{
 				log.debug("GE Assistant cleared offer slot {}", slot);
 			}
+			updateSidebar();
 			return removed;
 		}
 
@@ -145,6 +175,7 @@ public class GeAssistantPlugin extends Plugin
 			log.info("GE Assistant saw {} slot {} item {} price {} qty {}",
 				snapshot.getSide(), snapshot.getSlot(), snapshot.getItemId(), snapshot.getPrice(), snapshot.getTotalQuantity());
 		}
+		updateSidebar();
 		return !snapshot.equals(previous);
 	}
 
@@ -189,6 +220,7 @@ public class GeAssistantPlugin extends Plugin
 		{
 			warnings.clear();
 			insights.clear();
+			updateSidebar();
 			return;
 		}
 
@@ -196,6 +228,7 @@ public class GeAssistantPlugin extends Plugin
 		{
 			evaluateOffer(offer);
 		}
+		updateSidebar();
 	}
 
 	private void evaluateOffer(OfferSnapshot offer)
@@ -204,6 +237,7 @@ public class GeAssistantPlugin extends Plugin
 		{
 			warnings.clear();
 			insights.clear();
+			updateSidebar();
 			return;
 		}
 
@@ -238,6 +272,7 @@ public class GeAssistantPlugin extends Plugin
 					insights.remove(offer.getSlot());
 				}
 			);
+		updateSidebar();
 	}
 
 	Collection<GeOfferInsight> getInsights()
@@ -281,6 +316,45 @@ public class GeAssistantPlugin extends Plugin
 			Math.max(0, config.taxCapGp()),
 			Instant.now()
 		);
+	}
+
+	void updateSidebarSetupInsight(Optional<GeOfferInsight> insight)
+	{
+		setupSidebarInsight = insight.orElse(null);
+		updateSidebar();
+	}
+
+	private void updateSidebar()
+	{
+		GeFlippingPanel panel = flippingPanel;
+		if (panel == null)
+		{
+			return;
+		}
+		panel.update(GeFlippingSummary.from(getInsights(), Optional.ofNullable(setupSidebarInsight)));
+	}
+
+	private static BufferedImage createSidebarIcon()
+	{
+		BufferedImage image = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		Graphics2D graphics = image.createGraphics();
+		try
+		{
+			graphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			graphics.setColor(new Color(28, 55, 68));
+			graphics.fillRoundRect(1, 1, 14, 14, 4, 4);
+			graphics.setColor(new Color(70, 150, 85));
+			graphics.fillRect(4, 10, 8, 2);
+			graphics.setColor(new Color(255, 218, 68));
+			graphics.fillOval(4, 3, 8, 8);
+			graphics.setColor(new Color(20, 18, 14));
+			graphics.drawOval(4, 3, 8, 8);
+		}
+		finally
+		{
+			graphics.dispose();
+		}
+		return image;
 	}
 
 	@Provides

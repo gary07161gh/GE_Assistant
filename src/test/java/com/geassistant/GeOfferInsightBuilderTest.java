@@ -92,6 +92,24 @@ public class GeOfferInsightBuilderTest
 	}
 
 	@Test
+	public void suggestsFlipPricesFromLatestLowAndHigh()
+	{
+		GeOfferInsight insight = build(
+			OfferSide.BUY,
+			100,
+			price(140, 100),
+			market(140, 1_500, 100, 1_500),
+			market(138, 15_000, 101, 15_000)
+		).get();
+
+		assertEquals(100, insight.getSuggestedBuyPrice());
+		assertEquals(140, insight.getSuggestedSellPrice());
+		assertEquals(2, insight.getSuggestedTax());
+		assertEquals(38, insight.getSuggestedProfit());
+		assertEquals(38.0, insight.getSuggestedRoiPercent(), 0.001);
+	}
+
+	@Test
 	public void scoresAvoidWhenOfferAdjustedMarginIsNegative()
 	{
 		GeOfferInsight insight = build(

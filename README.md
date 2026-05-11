@@ -26,6 +26,7 @@ While setting up a new offer in the Grand Exchange interface, GE Assistant shows
 - Tax-adjusted margin for the item
 - Status indicator for the prospective offer
 - Balanced opportunity score using margin, ROI, volume, price freshness, and short-term trend
+- Suggested flip buy price, sell price, tax, expected profit, and ROI
 
 ### GE Tax Support
 - Configurable tax percentage (default 2% to match OSRS mechanics)
@@ -36,6 +37,11 @@ While setting up a new offer in the Grand Exchange interface, GE Assistant shows
 - Fetches OSRS Wiki 5-minute and 1-hour market data alongside latest prices
 - Scores opportunities from 0-100 with Strong, Fair, Weak, and Avoid labels
 - Shows score, ROI, net margin, volume, and trend context in the setup panel and hover tooltip
+
+### Sidebar Flipping Info
+- Adds a GE Assistant sidebar panel to RuneLite's toolbar
+- Shows setup-offer flipping context while entering an offer
+- Summarizes active GE offers, risky offer count, projected positive profit, and best active opportunity
 
 ## Configuration
 

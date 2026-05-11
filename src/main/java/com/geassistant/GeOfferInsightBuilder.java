@@ -53,6 +53,7 @@ final class GeOfferInsightBuilder
 		GeWarning warning = evaluator.evaluate(offer, price, thresholdPercent, taxPercent, taxCapGp).orElse(null);
 		GeInsightStatus status = status(offer, warning, signedPercent);
 		OpportunityValues opportunity = opportunity(offer, price, fiveMinute, hourly, taxPercent, taxCapGp, now);
+		SuggestedFlipValues suggested = suggestedFlipValues(price, taxPercent, taxCapGp);
 		return Optional.of(new GeOfferInsight(
 			offer,
 			price,
@@ -70,7 +71,12 @@ final class GeOfferInsightBuilder
 			opportunity.roiPercent,
 			opportunity.fiveMinuteVolume,
 			opportunity.hourlyVolume,
-			opportunity.trendText
+			opportunity.trendText,
+			suggested.buyPrice,
+			suggested.sellPrice,
+			suggested.tax,
+			suggested.profit,
+			suggested.roiPercent
 		));
 	}
 
@@ -78,6 +84,7 @@ final class GeOfferInsightBuilder
 		String statusText, double taxPercent, int taxCapGp, Instant now)
 	{
 		OpportunityValues opportunity = opportunity(offer, price, fiveMinute, hourly, taxPercent, taxCapGp, now);
+		SuggestedFlipValues suggested = suggestedFlipValues(price, taxPercent, taxCapGp);
 		return new GeOfferInsight(
 			offer,
 			price,
@@ -95,7 +102,12 @@ final class GeOfferInsightBuilder
 			opportunity.roiPercent,
 			opportunity.fiveMinuteVolume,
 			opportunity.hourlyVolume,
-			opportunity.trendText
+			opportunity.trendText,
+			suggested.buyPrice,
+			suggested.sellPrice,
+			suggested.tax,
+			suggested.profit,
+			suggested.roiPercent
 		);
 	}
 
@@ -284,6 +296,21 @@ final class GeOfferInsightBuilder
 		return sellPrice - tax;
 	}
 
+	private SuggestedFlipValues suggestedFlipValues(PriceSnapshot price, double taxPercent, int taxCapGp)
+	{
+		if (price == null || price.getLow() == null || price.getHigh() == null || price.getLow() <= 0 || price.getHigh() <= 0)
+		{
+			return new SuggestedFlipValues(0, 0, 0, 0, 0.0);
+		}
+
+		int buyPrice = price.getLow();
+		int sellPrice = price.getHigh();
+		int tax = sellPrice - sellPriceAfterTax(sellPrice, taxPercent, taxCapGp);
+		int profit = sellPrice - tax - buyPrice;
+		double roiPercent = buyPrice <= 0 ? 0.0 : profit * 100.0 / buyPrice;
+		return new SuggestedFlipValues(buyPrice, sellPrice, tax, profit, roiPercent);
+	}
+
 	private String opportunityLabel(int score)
 	{
 		if (score >= 75)
@@ -321,6 +348,24 @@ final class GeOfferInsightBuilder
 			this.fiveMinuteVolume = fiveMinuteVolume;
 			this.hourlyVolume = hourlyVolume;
 			this.trendText = trendText;
+		}
+	}
+
+	private static final class SuggestedFlipValues
+	{
+		private final int buyPrice;
+		private final int sellPrice;
+		private final int tax;
+		private final int profit;
+		private final double roiPercent;
+
+		private SuggestedFlipValues(int buyPrice, int sellPrice, int tax, int profit, double roiPercent)
+		{
+			this.buyPrice = buyPrice;
+			this.sellPrice = sellPrice;
+			this.tax = tax;
+			this.profit = profit;
+			this.roiPercent = roiPercent;
 		}
 	}
 }
